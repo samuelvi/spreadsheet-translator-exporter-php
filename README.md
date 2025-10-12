@@ -13,9 +13,7 @@ Related
 Requirements
 ------------
 
-  * PHP >=5.5.9
-  * Symfony ~2.3|~3.0
-
+  * PHP >=8.1
 
 
 Contributing

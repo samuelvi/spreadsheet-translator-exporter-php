@@ -22,12 +22,12 @@ class Php extends AbstractExporter implements ExporterInterface
         $this->configuration = new PhpExporterConfigurationManager($configuration);
     }
 
-    public function getFormat()
+    public function getFormat(): string
     {
         return 'php';
     }
 
-    protected function buildContent(ExportContentInterface $exportContent)
+    protected function buildContent(ExportContentInterface $exportContent): string
     {
         return sprintf("<?php\nreturn %s;", var_export($exportContent->getTranslations(), true));
     }
