@@ -13,7 +13,7 @@ Related
 Requirements
 ------------
 
-  * PHP >=8.1
+  * PHP >=8.4
 
 
 Contributing

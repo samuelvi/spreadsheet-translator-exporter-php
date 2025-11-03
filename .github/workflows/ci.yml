@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  tests:
+    name: Tests (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - '8.4'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: Exporters/Php
+
+      - name: Checkout Core dependency
+        uses: actions/checkout@v4
+        with:
+          repository: samuelvi/spreadsheet-translator-core
+          path: Core
+          ref: master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, ctype, iconv
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+        working-directory: Exporters/Php
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+        working-directory: Exporters/Php
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+        working-directory: Exporters/Php
+
+      - name: Run tests
+        run: vendor/bin/phpunit --testdox
+        working-directory: Exporters/Php
+
+      - name: Run tests with coverage
+        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage/clover.xml
+        working-directory: Exporters/Php
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.php-version }}
+          path: Exporters/Php/coverage/
+          retention-days: 7
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: Exporters/Php
+
+      - name: Checkout Core dependency
+        uses: actions/checkout@v4
+        with:
+          repository: samuelvi/spreadsheet-translator-core
+          path: Core
+          ref: master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+        working-directory: Exporters/Php
+
+      - name: Run Rector (dry-run)
+        run: vendor/bin/rector process src --dry-run
+        working-directory: Exporters/Php
